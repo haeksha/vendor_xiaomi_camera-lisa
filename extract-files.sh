@@ -55,8 +55,54 @@ fi
 
 function blob_fixup() {
     case "${1}" in
-        system/lib64/libcamera_algoup_jni.xiaomi.so|system/lib64/libcamera_mianode_jni.xiaomi.so)
-            patchelf --add-needed "libgui_shim_miuicamera.so" "${2}"
+        vendor/lib64/libsdmcore.so)
+            "${PATCHELF}" --replace-needed "libutils.so" "libutils-v33.so" "${2}"
+            ;;
+        vendor/lib/libsdmcore.so)
+            "${PATCHELF}" --replace-needed "libutils.so" "libutils-v33.so" "${2}"
+            ;;
+        vendor/lib64/hw/displayfeature.default.so)
+            "${PATCHELF}" --replace-needed "libstagefright_foundation.so" "libstagefright_foundation-v33.so" "${2}"
+            ;;
+        system_ext/lib64/libwfdnative.so)
+            "${PATCHELF}" --remove-needed "android.hidl.base@1.0.so" "${2}"
+            ;;            
+        vendor/lib64/android.hardware.secure_element@1.0-impl.so)
+            "${PATCHELF}" --remove-needed "android.hidl.base@1.0.so" "${2}"
+            ;;
+        system/lib64/libcamera_algoup_jni.xiaomi.so | system/lib64/libcamera_mianode_jni.xiaomi.so)
+            "${PATCHELF}" --add-needed "libgui_shim_miuicamera.so" "${2}"
+            ;;
+        vendor/bin/hw/vendor.dolby.hardware.dms@2.0-service)
+            "${PATCHELF}" --add-needed "libstagefright_foundation-v33.so" "${2}"
+            ;;
+        vendor/etc/init/init.embmssl_server.rc)
+            sed -i -n '/interface/!p' "${2}"
+            ;;
+        vendor/etc/vintf/manifest/c2_manifest_vendor.xml)
+            sed -ni '/ozoaudio/!p' "${2}"
+            ;;
+        vendor/lib/libcodec2_hidl@1.0_vendor.so)
+            "${PATCHELF}" --set-soname "libcodec2_hidl@1.0_vendor.so" "${2}"
+            "${PATCHELF}" --replace-needed "libcodec2_vndk.so" "libcodec2_vndk_vendor.so" "${2}"
+            ;;
+        vendor/lib/libcodec2_vndk_vendor.so)
+            "${PATCHELF}" --set-soname "libcodec2_vndk_vendor.so" "${2}"
+            ;;
+        vendor/lib64/c2.dolby.client.so)
+            "${PATCHELF}" --replace-needed "libcodec2_vndk.so" "libcodec2_vndk_vendor.so" "${2}"
+            "${PATCHELF}" --replace-needed "libcodec2_hidl@1.0.so" "libcodec2_hidl@1.0_vendor.so" "${2}"
+            ;;
+        vendor/bin/hw/dolbycodec2)
+            "${PATCHELF}" --add-needed "libstagefright_foundation-v33.so" "${2}"
+            ;;
+        vendor/etc/media_lahaina/video_system_specs.json \
+        |vendor/etc/media_shima_v1/video_system_specs.json \
+        |vendor/etc/media_yupik_v1/video_system_specs.json)
+            sed -i "/max_retry_alloc_output_timeout/ s/10000/0/" "${2}"
+            ;;
+        vendor/etc/vintf/manifest/c2_manifest_vendor.xml)
+            sed -ni '/ozoaudio/!p' "${2}"
             ;;
         system/priv-app/MiuiCamera/MiuiCamera.apk)
             tmp_dir="${EXTRACT_TMP_DIR}/MiuiCamera"
@@ -65,7 +111,7 @@ function blob_fixup() {
             apktool b -q "$tmp_dir" -o "$2"
             rm -rf "$tmp_dir"
             split --bytes=20M -d "$2" "$2".part
-            ;;
+       ;;
     esac
 }
 
